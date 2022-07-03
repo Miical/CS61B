@@ -25,7 +25,7 @@ public class MaxArrayDequeTest {
        actual = arr.max(new Comparator<Integer>() {
            @Override
            public int compare(Integer o1, Integer o2) {
-               return o2- o1;
+               return o2 - o1;
            }
        });
        assertEquals(expected, actual);
