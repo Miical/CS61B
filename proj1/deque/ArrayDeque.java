@@ -1,5 +1,7 @@
 package deque;
 
+import jh61b.junit.In;
+
 import java.util.Iterator;
 public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
     private int front, tail;
@@ -150,6 +152,9 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
             return true;
         }
         if (obj == null) {
+            return false;
+        }
+        if (! (obj instanceof Deque)) {
             return false;
         }
         Deque<T> o = (Deque<T>) obj;
