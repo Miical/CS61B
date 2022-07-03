@@ -38,7 +38,7 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
      * Adds an item of type T to the back of the deque.
      */
     public void addLast(T item) {
-        ListNode newNode = new ListNode()  ;
+        ListNode newNode = new ListNode();
         newNode.prev = sentinel.prev;
         newNode.item = item;
         newNode.next = sentinel;
@@ -173,7 +173,7 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
             return false;
         }
         for (int i = 0; i < size(); i++) {
-            if (this.get(i) != o.get(i)) {
+            if (!this.get(i).equals(o.get(i))) {
                 return false;
             }
         }
