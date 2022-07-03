@@ -2,14 +2,14 @@ package deque;
 
 import java.util.Iterator;
 
-public class LinkedListDeque<T> implements Iterable<T>, Deque<T>{
+public class LinkedListDeque<T> implements Iterable<T>, Deque<T> {
     private ListNode sentinel;
     private int size;
 
     private class ListNode {
-        public ListNode prev;
-        public T item;
-        public ListNode next;
+        private ListNode prev;
+        private T item;
+        private ListNode next;
     }
 
     /**
@@ -38,13 +38,13 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T>{
      * Adds an item of type T to the back of the deque.
      */
     public void addLast(T item) {
-       ListNode newNode = new ListNode()  ;
-       newNode.prev = sentinel.prev;
-       newNode.item = item;
-       newNode.next = sentinel;
-       sentinel.prev.next = newNode;
-       sentinel.prev = newNode;
-       size += 1;
+        ListNode newNode = new ListNode()  ;
+        newNode.prev = sentinel.prev;
+        newNode.item = item;
+        newNode.next = sentinel;
+        sentinel.prev.next = newNode;
+        sentinel.prev = newNode;
+        size += 1;
     }
 
     /**
@@ -88,14 +88,14 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T>{
      * If no such item exists, returns null.
      */
     public T removeLast() {
-       if (size == 0) {
-           return null;
-       }
-       T item = sentinel.prev.item;
-       sentinel.prev.prev.next = sentinel;
-       sentinel.prev = sentinel.prev.prev;
-       size -= 1;
-       return item;
+        if (size == 0) {
+            return null;
+        }
+        T item = sentinel.prev.item;
+        sentinel.prev.prev.next = sentinel;
+        sentinel.prev = sentinel.prev.prev;
+        size -= 1;
+        return item;
     }
 
     /**
@@ -140,7 +140,7 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T>{
     private class LinkedListDequeIterator implements Iterator<T> {
         private int index;
 
-        public LinkedListDequeIterator() {
+        LinkedListDequeIterator() {
             index = 0;
         }
 
@@ -162,7 +162,7 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T>{
         if (this == obj) {
             return true;
         }
-        if (this == null) {
+        if (obj == null) {
             return false;
         }
         if (this.getClass() != obj.getClass()) {
