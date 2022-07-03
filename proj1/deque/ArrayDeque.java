@@ -1,6 +1,10 @@
 package deque;
 
-public class ArrayDeque<T> {
+import jh61b.junit.In;
+
+import java.lang.reflect.Array;
+import java.util.Iterator;
+public class ArrayDeque<T> implements Deque<T>, Iterable<T>{
     private int front, tail;
     private T[] items;
 
@@ -17,13 +21,6 @@ public class ArrayDeque<T> {
      */
     public int size() {
         return (tail - front + items.length) % items.length;
-    }
-
-    /**
-     * Returns true if deque is empty, false otherwise.
-     */
-    public boolean isEmpty() {
-        return front == tail;
     }
 
     /**
@@ -121,5 +118,53 @@ public class ArrayDeque<T> {
             return null;
         }
         return items[(front + index) % items.length];
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        return new ArrayDequeIterator();
+    }
+
+    private class ArrayDequeIterator implements Iterator<T> {
+        private int index;
+
+        public ArrayDequeIterator() {
+            index = 0;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return index < size();
+        }
+
+        @Override
+        public T next() {
+            T returnItem = get(index);
+            index += 1;
+            return returnItem;
+        }
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (this == null) {
+            return false;
+        }
+        if (this.getClass() != obj.getClass()) {
+            return false;
+        }
+        ArrayDeque<T> o = (ArrayDeque<T>) obj;
+        if (this.size() != o.size()) {
+            return false;
+        }
+        for (int i = 0; i < size(); i++) {
+            if (this.get(i) != o.get(i)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

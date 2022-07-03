@@ -1,12 +1,15 @@
 package deque;
 
-import java.util.List;
+import jh61b.junit.In;
 
-public class LinkedListDeque<T> {
+import java.util.List;
+import java.util.Iterator;
+
+public class LinkedListDeque<T> implements Iterable<T>, Deque<T>{
     private ListNode sentinel;
     private int size;
 
-    public class ListNode {
+    private class ListNode {
         public ListNode prev;
         public T item;
         public ListNode next;
@@ -45,13 +48,6 @@ public class LinkedListDeque<T> {
        sentinel.prev.next = newNode;
        sentinel.prev = newNode;
        size += 1;
-    }
-
-    /**
-     * Returns true if deque is empty, false otherwise.
-     */
-    public boolean isEmpty() {
-        return size == 0;
     }
 
     /**
@@ -137,5 +133,53 @@ public class LinkedListDeque<T> {
             return node.item;
         }
         return getRecursive(node.next, index - 1);
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        return new LinkedListDequeIterator();
+    }
+
+    private class LinkedListDequeIterator implements Iterator<T> {
+        private int index;
+
+        public LinkedListDequeIterator() {
+            index = 0;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return index < size();
+        }
+
+        @Override
+        public T next() {
+            T returnItem = get(index);
+            index += 1;
+            return returnItem;
+        }
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (this == null) {
+            return false;
+        }
+        if (this.getClass() != obj.getClass()) {
+            return false;
+        }
+        LinkedListDeque<T> o = (LinkedListDeque<T>) obj;
+        if (this.size() != o.size()) {
+            return false;
+        }
+        for (int i = 0; i < size(); i++) {
+            if (this.get(i) != o.get(i)) {
+                return false;
+            }
+        }
+        return true;
     }
 }
