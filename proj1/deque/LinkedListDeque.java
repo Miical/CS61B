@@ -1,8 +1,5 @@
 package deque;
 
-import jh61b.junit.In;
-
-import java.util.List;
 import java.util.Iterator;
 
 public class LinkedListDeque<T> implements Iterable<T>, Deque<T>{
@@ -95,7 +92,7 @@ public class LinkedListDeque<T> implements Iterable<T>, Deque<T>{
            return null;
        }
        T item = sentinel.prev.item;
-       sentinel.prev.prev.next = sentinel.prev;
+       sentinel.prev.prev.next = sentinel;
        sentinel.prev = sentinel.prev.prev;
        size -= 1;
        return item;

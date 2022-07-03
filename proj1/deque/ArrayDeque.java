@@ -1,8 +1,5 @@
 package deque;
 
-import jh61b.junit.In;
-
-import java.lang.reflect.Array;
 import java.util.Iterator;
 public class ArrayDeque<T> implements Deque<T>, Iterable<T>{
     private int front, tail;
@@ -62,7 +59,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T>{
             resize(items.length * 2);
         }
         items[tail] = item;
-        tail += 1;
+        tail = (tail + 1) % items.length;
     }
 
     /**
@@ -86,6 +83,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T>{
             return null;
         }
         T item = items[front];
+        items[front] = null;
         front = (front + 1) % items.length;
         if (size() < items.length / 4) {
            resize(items.length / 2);
@@ -103,6 +101,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T>{
         }
         T item = get(size() - 1);
         tail = (tail - 1 + items.length) % items.length;
+        items[tail] = null;
         if (size() < items.length / 4) {
             resize(items.length / 2);
         }
