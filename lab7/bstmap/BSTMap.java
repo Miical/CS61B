@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V>{
-    enum Color {
+    private enum Color {
         BLACK, RED;
     }
     private class BSTNode {
@@ -209,5 +209,18 @@ public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V>{
     @Override
     public Iterator<K> iterator() {
         throw new UnsupportedOperationException();
+    }
+
+    private void printInOrder(BSTNode node) {
+        if (node == null) {
+            return;
+        }
+        printInOrder(node.left);
+        System.out.print(node.key + " ");
+        printInOrder(node.right);
+    }
+    public void printInOrder() {
+        printInOrder(root);
+        System.out.println();
     }
 }
