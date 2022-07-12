@@ -1,19 +1,18 @@
 package gitlet;
 
-// TODO: any imports you need here
+import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.Date;
 
-import java.util.Date; // TODO: You'll likely use this in this class
+import static gitlet.Utils.*;
+
 
 /** Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
- *
- *  @author TODO
+ *  @author Jason Liu
  */
-public class Commit {
+public class Commit implements Serializable {
     /**
-     * TODO: add instance variables here.
-     *
      * List all instance variables of the Commit class here with a useful
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided one example for `message`.
@@ -21,6 +20,40 @@ public class Commit {
 
     /** The message of this Commit. */
     private String message;
+    private String parentID;
+    private Date date;
 
-    /* TODO: fill in the rest of this class. */
+    public FileList fileList;
+
+    static final File COMMIT_FOLDER = join(".gitlet", "commits");
+
+    Commit(String msg, Date d, String parent) {
+       message = msg;
+       date = d;
+       parentID = parent;
+       fileList = new FileList();
+    }
+    public String getHashCode() {
+        return sha1(serialize(this));
+    }
+
+    public void saveCommit() {
+        String hashCode = getHashCode();
+        File outFile = new File(COMMIT_FOLDER, hashCode);
+        try {
+            outFile.createNewFile();
+        } catch(IOException excp) {
+            System.out.println("Failed in Commit saveCommit()");
+            outFile = null;
+        }
+        if (outFile != null) {
+            writeObject(outFile, this);
+        }
+    }
+
+    public static Commit fromFile(String commitHash) {
+        File CommitFile = new File(COMMIT_FOLDER, commitHash);
+        return readObject(CommitFile, Commit.class);
+    }
+
 }
