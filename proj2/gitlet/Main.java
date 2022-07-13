@@ -21,6 +21,30 @@ public class Main {
             case "commit":
                 Repository.commit(args[1]);
                 break;
+            case "rm":
+                Repository.remove(args[1]);
+                break;
+            case "log":
+                Repository.log();
+                break;
+            case "global-log":
+                Repository.globalLog();
+                break;
+            case "find":
+                Repository.find(args[1]);
+                break;
+            case "status":
+                Repository.status();
+                break;
+            case "checkout":
+                if (args.length == 2) {
+                    Repository.checkoutBranch(args[1]);
+                } else if (args.length == 3) {
+                    Repository.checkout(args[2], null);
+                } else if (args.length == 4) {
+                    Repository.checkout(args[3], args[1]);
+                }
+                break;
         }
     }
 }

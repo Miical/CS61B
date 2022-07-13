@@ -17,6 +17,9 @@ public class Branch implements Serializable {
 
     public static Branch fromFile(String branchName) {
         File branchFile = new File(BRANCH_FOLDER, branchName);
+        if (!branchFile.exists()) {
+            return null;
+        }
         return readObject(branchFile, Branch.class);
     }
 

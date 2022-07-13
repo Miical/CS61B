@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.Formatter;
+import java.util.Map;
 
 import static gitlet.Utils.*;
 
@@ -22,19 +24,78 @@ public class Commit implements Serializable {
     private String message;
     private String parentID;
     private Date date;
+    private String mergedBranch;
 
     public FileList fileList;
 
     static final File COMMIT_FOLDER = join(".gitlet", "commits");
+    static final File OBJECT_FOLDER = join(".gitlet", "objects");
 
     Commit(String msg, Date d, String parent) {
        message = msg;
        date = d;
        parentID = parent;
        fileList = new FileList();
+       mergedBranch = null;
     }
+
+    Commit(String msg, Date d, String parent, String merge) {
+        message = msg;
+        date = d;
+        parentID = parent;
+        fileList = new FileList();
+        mergedBranch = merge;
+    }
+
+    public void updateFileList(Commit lastCommit, StagingArea stagingArea) {
+        for (Map.Entry<String, String> file : stagingArea.stageFiles.files.entrySet()) {
+            File stagedFile = join(StagingArea.FILE_FOLDER, file.getValue());
+            byte[] content = readContents(stagedFile);
+            File savedFile = join(OBJECT_FOLDER, file.getValue());
+            try {
+                savedFile.createNewFile();
+            } catch (IOException excp) {
+                System.out.println("Failed in Commit updateFileLast()");
+                return;
+            }
+            writeContents(savedFile, content);
+            fileList.addFile(file.getKey(), file.getValue());
+        }
+
+        for (Map.Entry<String, String> file : lastCommit.fileList.files.entrySet()) {
+            if (!fileList.contain(file.getKey())) {
+                if (!stagingArea.removedFiles.contain(file.getKey())) {
+                    fileList.addFile(file.getKey(), file.getValue());
+                }
+            }
+        }
+    }
+
     public String getHashCode() {
         return sha1(serialize(this));
+    }
+
+    public void print() {
+        System.out.println("===");
+        System.out.println("commit " + getHashCode());
+        if (mergedBranch != null) {
+            System.out.println("Merge: " + parentID.substring(0, 7)
+                    + " " + mergedBranch.substring(0, 7));
+        }
+        System.out.println("Date: " + date);
+        System.out.println(message);
+        System.out.println();
+    }
+
+    public void printHistory() {
+        print();
+        if (parentID != null) {
+            fromFile(parentID).printHistory();
+        }
+    }
+
+    public boolean containMessage(String msg) {
+        return message.contains(msg);
     }
 
     public void saveCommit() {
@@ -53,7 +114,37 @@ public class Commit implements Serializable {
 
     public static Commit fromFile(String commitHash) {
         File CommitFile = new File(COMMIT_FOLDER, commitHash);
+        if (!CommitFile.exists()) {
+            return null;
+        }
         return readObject(CommitFile, Commit.class);
+    }
+    public static Commit fromFileWithPrefix(String prefixHashCode) {
+        if (prefixHashCode.length() > UID_LENGTH) {
+            return null;
+        }
+        String commitID = null;
+        int num = 0;
+        for (String fileName : plainFilenamesIn(COMMIT_FOLDER)) {
+            boolean correct = true;
+            for (int i = 0; i < prefixHashCode.length(); i++) {
+                if (fileName.charAt(i) != prefixHashCode.charAt(i)) {
+                    correct = false;
+                }
+            }
+            if (correct) {
+                commitID = fileName;
+                num++;
+            }
+        }
+
+        if (num != 1) {
+            System.out.println(prefixHashCode);
+            System.out.println("not found");
+            return null;
+        }
+
+        return fromFile(commitID);
     }
 
 }

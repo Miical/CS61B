@@ -3,17 +3,10 @@ package gitlet;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class FileList implements Serializable {
-    private static class FileItem implements Serializable {
-        public String name;
-        public String hash;
-        FileItem(String n, String h) {
-            name = n;
-            hash = h;
-        }
-    }
-    Map<String, String> files;
+    public Map<String, String> files;
 
 
     FileList() {
@@ -29,15 +22,25 @@ public class FileList implements Serializable {
     }
 
     public boolean changed(String name, String hashCode) {
-        return files.get(name) != hashCode;
+        if (files.get(name) == null) {
+            return true;
+        }
+        return !files.get(name).equals(hashCode);
     }
 
     public void remove(String name) {
         files.remove(name);
     }
 
+    public boolean isEmpty() {
+        return files.isEmpty();
+    }
+
+    public void clear() {
+        files.clear();
+    }
+
     public String getHashCode(String name) {
         return files.get(name);
     }
-
 }

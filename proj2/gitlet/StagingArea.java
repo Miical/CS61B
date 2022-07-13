@@ -3,8 +3,7 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -12,10 +11,10 @@ public class StagingArea implements Serializable {
     static final File AREA_FOLDER = join(".gitlet", "stage");
     static final File FILE_FOLDER = join(AREA_FOLDER, "objects");
     FileList stageFiles;
-    List<String> removedFiles;
+    FileList removedFiles;
 
     StagingArea() {
-        removedFiles = new ArrayList<>();
+        removedFiles = new FileList();
         stageFiles = new FileList();
     }
 
@@ -23,6 +22,10 @@ public class StagingArea implements Serializable {
         byte[] content = readContents(f);
         String hashCode = sha1(content);
         File tempFile = join(FILE_FOLDER, hashCode);
+
+        if (removedFiles.contain(f.getName())) {
+            removedFiles.remove(f.getName());
+        }
 
         if (!currentCommit.fileList.changed(f.getName(), hashCode)) {
             tempFile.delete();
@@ -44,24 +47,39 @@ public class StagingArea implements Serializable {
     }
 
     private void unstage(String name) {
-        File lastFile = join(FILE_FOLDER, stageFiles.getHashCode(name);
-        lastFile.delete();
+        File stagedFile = join(FILE_FOLDER, stageFiles.getHashCode(name));
+        stagedFile.delete();
         stageFiles.remove(name);
     }
 
-    void removeFile(String name, Commit currentCommit) {
+    public void removeFile(String name, Commit currentCommit) {
+        boolean changed = false;
         if (stageFiles.contain(name)) {
             unstage(name);
+            changed = true;
         }
 
         if (currentCommit.fileList.contain(name)) {
-            removedFiles.add(name);
+            removedFiles.addFile(name, null);
+            restrictedDelete(name);
+            changed = true;
         }
 
+        if (!changed) {
+            System.out.println("No reason to remove the file.");
+        }
+    }
 
+    public boolean isEmpty() {
+        return removedFiles.isEmpty() && stageFiles.isEmpty();
+    }
 
-
-
+    public void clearStagingArea() {
+        for (String fileName : stageFiles.files.keySet()) {
+           unstage(fileName);
+        }
+        stageFiles.clear();
+        removedFiles.clear();
     }
 
     public static StagingArea fromFile() {
