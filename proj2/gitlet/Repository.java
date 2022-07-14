@@ -294,6 +294,7 @@ public class Repository implements Serializable {
         }
         changeFilesToCommit(c);
         head.commit = c.getHashCode();
+        stagingArea.clearStagingArea();
         saveRepo();
     }
 
