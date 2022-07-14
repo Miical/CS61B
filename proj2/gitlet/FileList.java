@@ -3,11 +3,9 @@ package gitlet;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 public class FileList implements Serializable {
     public Map<String, String> files;
-
 
     FileList() {
         files = new HashMap<>();

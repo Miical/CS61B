@@ -3,9 +3,11 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Formatter;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static gitlet.Utils.*;
 
@@ -32,11 +34,11 @@ public class Commit implements Serializable {
     static final File OBJECT_FOLDER = join(".gitlet", "objects");
 
     Commit(String msg, Date d, String parent) {
-       message = msg;
-       date = d;
-       parentID = parent;
-       fileList = new FileList();
-       mergedBranch = null;
+        message = msg;
+        date = d;
+        parentID = parent;
+        fileList = new FileList();
+        mergedBranch = null;
     }
 
     Commit(String msg, Date d, String parent, String merge) {
@@ -82,7 +84,9 @@ public class Commit implements Serializable {
             System.out.println("Merge: " + parentID.substring(0, 7)
                     + " " + mergedBranch.substring(0, 7));
         }
-        System.out.println("Date: " + date);
+        SimpleDateFormat format = new
+                SimpleDateFormat("EEE MMM dd HH:mm:ss yyyy Z");
+        System.out.println("Date: " + format.format(date));
         System.out.println(message);
         System.out.println();
     }
@@ -103,7 +107,7 @@ public class Commit implements Serializable {
         File outFile = new File(COMMIT_FOLDER, hashCode);
         try {
             outFile.createNewFile();
-        } catch(IOException excp) {
+        } catch (IOException excp) {
             System.out.println("Failed in Commit saveCommit()");
             outFile = null;
         }
@@ -112,12 +116,27 @@ public class Commit implements Serializable {
         }
     }
 
+    public Set<String> ancestorCommits() {
+        Set<String> ancestors = new HashSet<>();
+        Commit now = this;
+        ancestors.add(getHashCode());
+        while (now.parentID != null) {
+            ancestors.add(now.parentID);
+            now = fromFile(now.parentID);
+        }
+        return ancestors;
+    }
+
+    public String getParentID() {
+        return parentID;
+    }
+
     public static Commit fromFile(String commitHash) {
-        File CommitFile = new File(COMMIT_FOLDER, commitHash);
-        if (!CommitFile.exists()) {
+        File commitFile = new File(COMMIT_FOLDER, commitHash);
+        if (!commitFile.exists()) {
             return null;
         }
-        return readObject(CommitFile, Commit.class);
+        return readObject(commitFile, Commit.class);
     }
     public static Commit fromFileWithPrefix(String prefixHashCode) {
         if (prefixHashCode.length() > UID_LENGTH) {

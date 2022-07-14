@@ -11,8 +11,13 @@ public class Branch implements Serializable {
     String commit;
 
     public Branch(String n, String c) {
-       name = n;
-       commit = c;
+        name = n;
+        commit = c;
+    }
+
+    public static void removeBranch(String branchName) {
+        File branchFile = new File(BRANCH_FOLDER, branchName);
+        branchFile.delete();
     }
 
     public static Branch fromFile(String branchName) {
@@ -27,7 +32,7 @@ public class Branch implements Serializable {
         File outFile = new File(BRANCH_FOLDER, name);
         try {
             outFile.createNewFile();
-        } catch(IOException excp) {
+        } catch (IOException excp) {
             System.out.println("Failed in Branch saveBranch()");
             outFile = null;
         }

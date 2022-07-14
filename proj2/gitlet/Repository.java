@@ -4,24 +4,18 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import static gitlet.Utils.*;
 
-// TODO: any imports you need here
-
 /** Represents a gitlet repository.
- *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
  *  @author Jason Liu
  */
 public class Repository implements Serializable {
     /**
-     * TODO: add instance variables here.
-     *
      * List all instance variables of the Repository class here with a useful
      * comment above them describing what that variable represents and how that
      * variable is used. We've provided two examples for you.
@@ -50,8 +44,8 @@ public class Repository implements Serializable {
     }
     public static void init() {
         if (GITLET_DIR.exists()) {
-            System.out.println("A Gitlet version-control system " +
-                    "already exists in the current directory.");
+            System.out.println("A Gitlet version-control system "
+                    + "already exists in the current directory.");
             return;
         }
         creatWorkFolder();
@@ -147,11 +141,11 @@ public class Repository implements Serializable {
             if (!f.exists()) {
                 System.out.println(file.getKey() + " (deleted)");
             } else {
-               byte[] content = readContents(f);
-               String hashCode = sha1(content);
-               if (!hashCode.equals(file.getValue())) {
-                   System.out.println(file.getKey() + " (modified)");
-               }
+                byte[] content = readContents(f);
+                String hashCode = sha1(content);
+                if (!hashCode.equals(file.getValue())) {
+                    System.out.println(file.getKey() + " (modified)");
+                }
             }
         }
         for (Map.Entry<String, String> file : getCurrentCommit().fileList.files.entrySet()) {
@@ -175,8 +169,8 @@ public class Repository implements Serializable {
 
         System.out.println("=== Untracked Files ===");
         for (String fileName : plainFilenamesIn(CWD)) {
-            if (!stagingArea.stageFiles.contain(fileName) &&
-                    !getCurrentCommit().fileList.contain(fileName)) {
+            if (!stagingArea.stageFiles.contain(fileName)
+                    && !getCurrentCommit().fileList.contain(fileName)) {
                 System.out.println(fileName);
             }
         }
@@ -204,30 +198,20 @@ public class Repository implements Serializable {
                 commit.fileList.getHashCode(fileName));
         try {
             oldFile.createNewFile();
-        } catch (IOException excp) {}
+        } catch (IOException excp) {
+            oldFile = null;
+        }
         writeContents(oldFile, readContents(exceptedFile));
         saveRepo();
     }
 
-    public static void checkoutBranch(String branch) {
-        loadRepo();
-        Branch b = Branch.fromFile(branch);
-        if (b == null) {
-            System.out.println("No such branch exists.");
-            return;
-        }
-        if (head.name.equals(branch)) {
-            System.out.println("No need to checkout the current branch.");
-            return;
-        }
-
-        Commit c = Commit.fromFile(b.commit);
+    private static void changeFilesToCommit(Commit c) {
         for (String fileName : plainFilenamesIn(CWD)) {
-            if (!stagingArea.stageFiles.contain(fileName) &&
-                    !getCurrentCommit().fileList.contain(fileName)) {
+            if (!stagingArea.stageFiles.contain(fileName)
+                    && !getCurrentCommit().fileList.contain(fileName)) {
                 if (c.fileList.contain(fileName)) {
-                    System.out.println("There is an untracked file in the way; " +
-                            "delete it, or add and commit it first.");
+                    System.out.println("There is an untracked file in the way; "
+                            + "delete it, or add and commit it first.");
                     return;
                 }
             }
@@ -243,11 +227,177 @@ public class Repository implements Serializable {
             File exceptedFile = join(Commit.OBJECT_FOLDER, file.getValue());
             try {
                 cwdFile.createNewFile();
-            } catch (IOException excp) {}
+            } catch (IOException excp) {
+                cwdFile = null;
+            }
             writeContents(cwdFile, readContents(exceptedFile));
         }
+
+    }
+
+    public static void checkoutBranch(String branch) {
+        loadRepo();
+        Branch b = Branch.fromFile(branch);
+        if (b == null) {
+            System.out.println("No such branch exists.");
+            return;
+        }
+        if (head.name.equals(branch)) {
+            System.out.println("No need to checkout the current branch.");
+            return;
+        }
+
+        changeFilesToCommit(Commit.fromFile(b.commit));
+        head = b;
         stagingArea.clearStagingArea();
         saveRepo();
+    }
+
+    public static void branch(String branchName) {
+        loadRepo();
+        if (Branch.fromFile(branchName) != null) {
+            System.out.println("A branch with that name already exists.");
+            return;
+        }
+        Branch newBranch = new Branch(branchName, head.commit);
+        newBranch.saveBranch();
+        saveRepo();
+    }
+
+    public static void rmBranch(String branchName) {
+        loadRepo();
+        if (Branch.fromFile(branchName) == null) {
+            System.out.println("A branch with that name does not exist.");
+            return;
+        }
+        if (head.name.equals(branchName)) {
+            System.out.println("Cannot remove the current branch.");
+            return;
+        }
+        Branch.removeBranch(branchName);
+        saveRepo();
+    }
+
+    public static void reset(String commitID) {
+        loadRepo();
+        Commit c = Commit.fromFileWithPrefix(commitID);
+        if (c == null) {
+            System.out.println("No commit with that id exists.");
+            return;
+        }
+        changeFilesToCommit(c);
+        head.commit = c.getHashCode();
+        saveRepo();
+    }
+
+    private static boolean modified(String fileName, Commit oldCommit, Commit newCommit) {
+        if (oldCommit.fileList.contain(fileName)
+                && newCommit.fileList.contain(fileName)) {
+            return !oldCommit.fileList.getHashCode(fileName).equals(
+                    newCommit.fileList.getHashCode(fileName));
+        }
+        return true;
+    }
+    private static boolean deleted(String fileName, Commit oldCommit, Commit newCommit) {
+        return oldCommit.fileList.contain(fileName)
+                && !newCommit.fileList.contain(fileName);
+    }
+
+    private static boolean basicMergeCheck(String branchName) {
+        if (stagingArea.changed()) {
+            System.out.println("You have uncommitted changes.");
+            return false;
+        }
+        Branch b = Branch.fromFile(branchName);
+        if (b == null) {
+            System.out.println("A branch with that name does not exist.");
+            return false;
+        }
+        if (b.name.equals(head.name)) {
+            System.out.println("Cannot merge a branch with itself.");
+            return false;
+        }
+        return true;
+    }
+    public static void merge(String branchName) {
+        loadRepo();
+        if (!basicMergeCheck(branchName)) {
+            return;
+        }
+        Branch b = Branch.fromFile(branchName);
+        Commit c = Commit.fromFile(b.commit), current = getCurrentCommit();
+        Set<String> ancestorCommits = Commit.fromFile(head.commit).ancestorCommits();
+        Commit split = c;
+        while (!ancestorCommits.contains(split.getHashCode())) {
+            split = Commit.fromFile(split.getParentID());
+        }
+        if (split.getHashCode().equals(c.getHashCode())) {
+            System.out.println("Given branch is an ancestor of the current branch.");
+            return;
+        }
+        if (split.getHashCode().equals(current.getHashCode())) {
+            reset(c.getHashCode());
+            System.out.println("Current branch fast-forwarded.");
+            return;
+        }
+        for (String fileName : plainFilenamesIn(CWD)) {
+            if (!split.fileList.contain(fileName) && c.fileList.contain(fileName)
+                    && !current.fileList.contain(fileName)) {
+                System.out.println("There is an untracked file in the way; "
+                        + "delete it, or add and commit it first.");
+                return;
+            }
+        }
+        for (String fileName : current.fileList.files.keySet()) {
+            if (!modified(fileName, split, current) && deleted(fileName, split, c)
+                    && plainFilenamesIn(CWD).contains(fileName)) {
+                System.out.println("There is an untracked file in the way; "
+                        + "delete it, or add and commit it first.");
+                return;
+            }
+        }
+        boolean hasConflict = false;
+        Commit newCommit = new Commit("Merged " + branchName + " into " + head.name,
+                new Date(), head.commit, b.commit);
+        for (String fileName : current.fileList.files.keySet()) {
+            if (!modified(fileName, split, current) && c.fileList.contain(fileName)
+                    && modified(fileName, split, c)) {
+                newCommit.fileList.addFile(fileName, c.fileList.getHashCode(fileName));
+            } else if (modified(fileName, split, current)
+                    && c.fileList.contain(fileName) && modified(fileName, split, c)) {
+                hasConflict = true;
+                File currentFile = join(Commit.OBJECT_FOLDER,
+                        current.fileList.getHashCode(fileName));
+                File givenFile = join(Commit.OBJECT_FOLDER,
+                        c.fileList.getHashCode(fileName));
+                String newContent = "<<<<<<< HEAD\n" + readContentsAsString(currentFile)
+                        + "\n=======\n" + readContentsAsString(givenFile) + "\n>>>>>>>\n";
+                byte[] contentByte = newContent.getBytes();
+                String newFileHash = sha1(contentByte);
+                File newFile = join(Commit.OBJECT_FOLDER, newFileHash);
+                try {
+                    newFile.createNewFile();
+                } catch (IOException excp) {
+                    newFile = null;
+                }
+                writeContents(newFile, contentByte);
+                newCommit.fileList.addFile(fileName, newFileHash);
+            } else if (!(!modified(fileName, split, current)
+                    && deleted(fileName, split, c))) {
+                newCommit.fileList.addFile(fileName, current.fileList.getHashCode(fileName));
+            }
+        }
+        for (String fileName : c.fileList.files.keySet()) {
+            if (!split.fileList.contain(fileName) && !current.fileList.contain(fileName)) {
+                newCommit.fileList.addFile(fileName, c.fileList.getHashCode(fileName));
+            }
+        }
+        if (hasConflict) {
+            System.out.println("Encountered a merge conflict.");
+        }
+        newCommit.saveCommit();
+        rmBranch(branchName);
+        reset(newCommit.getHashCode());
     }
 
     private static void loadRepo() {
@@ -264,6 +414,4 @@ public class Repository implements Serializable {
         head.saveBranch();
         stagingArea.saveArea();
     }
-
-
 }

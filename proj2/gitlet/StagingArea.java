@@ -3,7 +3,6 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -76,10 +75,14 @@ public class StagingArea implements Serializable {
 
     public void clearStagingArea() {
         for (String fileName : stageFiles.files.keySet()) {
-           unstage(fileName);
+            unstage(fileName);
         }
         stageFiles.clear();
         removedFiles.clear();
+    }
+
+    public boolean changed() {
+        return !stageFiles.isEmpty() || !removedFiles.isEmpty();
     }
 
     public static StagingArea fromFile() {
@@ -90,7 +93,7 @@ public class StagingArea implements Serializable {
         File outFile = new File(AREA_FOLDER, "stage");
         try {
             outFile.createNewFile();
-        } catch(IOException excp) {
+        } catch (IOException excp) {
             System.out.println("Failed in StagingArea saveArea()");
             outFile = null;
         }
