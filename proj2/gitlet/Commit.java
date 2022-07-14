@@ -159,7 +159,6 @@ public class Commit implements Serializable {
 
         if (num != 1) {
             System.out.println(prefixHashCode);
-            System.out.println("not found");
             return null;
         }
 

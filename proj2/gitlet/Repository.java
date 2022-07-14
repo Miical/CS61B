@@ -57,12 +57,12 @@ public class Repository implements Serializable {
     }
 
     public static void add(String fileName) {
+        loadRepo();
         File f = join(CWD, fileName);
         if (!f.exists()) {
             System.out.println("File does not exist.");
             return;
         }
-        loadRepo();
         stagingArea.addFile(f, getCurrentCommit());
         saveRepo();
     }
@@ -98,12 +98,14 @@ public class Repository implements Serializable {
     }
 
     public static void globalLog() {
+        loadRepo();
         for (String fileName : plainFilenamesIn(Commit.COMMIT_FOLDER)) {
             Commit.fromFile(fileName).print();
         }
     }
 
     public static void find(String msg) {
+        loadRepo();
         boolean found = false;
         for (String fileName : plainFilenamesIn(Commit.COMMIT_FOLDER)) {
             Commit c = Commit.fromFile(fileName);
@@ -406,6 +408,10 @@ public class Repository implements Serializable {
     }
 
     private static void loadRepo() {
+        if (!GITLET_DIR.exists()) {
+            System.out.println("Not in an initialized Gitlet directory.");
+            System.exit(0);
+        }
         File headFile = new File(GITLET_DIR, "HEAD");
         String headName = readObject(headFile, String.class);
         head = Branch.fromFile(headName);
