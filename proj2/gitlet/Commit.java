@@ -28,7 +28,7 @@ public class Commit implements Serializable {
     private Date date;
     private String mergedBranch;
 
-    public FileList fileList;
+    private FileList fileList;
 
     static final File COMMIT_FOLDER = join(".gitlet", "commits");
     static final File OBJECT_FOLDER = join(".gitlet", "objects");
@@ -49,8 +49,12 @@ public class Commit implements Serializable {
         mergedBranch = merge;
     }
 
+    public FileList getFileList() {
+        return fileList;
+    }
+
     public void updateFileList(Commit lastCommit, StagingArea stagingArea) {
-        for (Map.Entry<String, String> file : stagingArea.stageFiles.files.entrySet()) {
+        for (Map.Entry<String, String> file : stagingArea.stageFiles.getFiles().entrySet()) {
             File stagedFile = join(StagingArea.FILE_FOLDER, file.getValue());
             byte[] content = readContents(stagedFile);
             File savedFile = join(OBJECT_FOLDER, file.getValue());
@@ -64,7 +68,7 @@ public class Commit implements Serializable {
             fileList.addFile(file.getKey(), file.getValue());
         }
 
-        for (Map.Entry<String, String> file : lastCommit.fileList.files.entrySet()) {
+        for (Map.Entry<String, String> file : lastCommit.fileList.getFiles().entrySet()) {
             if (!fileList.contain(file.getKey())) {
                 if (!stagingArea.removedFiles.contain(file.getKey())) {
                     fileList.addFile(file.getKey(), file.getValue());

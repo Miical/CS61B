@@ -5,10 +5,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class FileList implements Serializable {
-    public Map<String, String> files;
+    private Map<String, String> files;
 
     FileList() {
         files = new HashMap<>();
+    }
+
+    public Map<String, String> getFiles() {
+        return files;
     }
 
     public void addFile(String name, String hash) {

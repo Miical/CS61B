@@ -131,19 +131,19 @@ public class Repository implements Serializable {
         System.out.println();
 
         System.out.println("=== Staged Files ===");
-        for (String fileName : stagingArea.stageFiles.files.keySet()) {
+        for (String fileName : stagingArea.stageFiles.getFiles().keySet()) {
             System.out.println(fileName);
         }
         System.out.println();
 
         System.out.println("=== Removed Files ===");
-        for (String fileName : stagingArea.removedFiles.files.keySet()) {
+        for (String fileName : stagingArea.removedFiles.getFiles().keySet()) {
             System.out.println(fileName);
         }
         System.out.println();
 
         System.out.println("=== Modifications Not Staged For Commit ===");
-        for (Map.Entry<String, String> file : stagingArea.stageFiles.files.entrySet()) {
+        for (Map.Entry<String, String> file : stagingArea.stageFiles.getFiles().entrySet()) {
             File f = join(CWD, file.getKey());
             if (!f.exists()) {
                 System.out.println(file.getKey() + " (deleted)");
@@ -155,7 +155,8 @@ public class Repository implements Serializable {
                 }
             }
         }
-        for (Map.Entry<String, String> file : getCurrentCommit().fileList.files.entrySet()) {
+        for (Map.Entry<String, String> file
+                : getCurrentCommit().getFileList().getFiles().entrySet()) {
             if (stagingArea.stageFiles.contain(file.getKey())) {
                 continue;
             }
@@ -177,7 +178,7 @@ public class Repository implements Serializable {
         System.out.println("=== Untracked Files ===");
         for (String fileName : plainFilenamesIn(CWD)) {
             if (!stagingArea.stageFiles.contain(fileName)
-                    && !getCurrentCommit().fileList.contain(fileName)) {
+                    && !getCurrentCommit().getFileList().contain(fileName)) {
                 System.out.println(fileName);
             }
         }
@@ -195,14 +196,14 @@ public class Repository implements Serializable {
             System.out.println("No commit with that id exists.");
             return;
         }
-        if (!commit.fileList.contain(fileName)) {
+        if (!commit.getFileList().contain(fileName)) {
             System.out.println("File does not exist in that commit.");
             return;
         }
 
         File oldFile = join(CWD, fileName);
         File exceptedFile = join(Commit.OBJECT_FOLDER,
-                commit.fileList.getHashCode(fileName));
+                commit.getFileList().getHashCode(fileName));
         try {
             oldFile.createNewFile();
         } catch (IOException excp) {
@@ -215,8 +216,8 @@ public class Repository implements Serializable {
     private static void changeFilesToCommit(Commit c) {
         for (String fileName : plainFilenamesIn(CWD)) {
             if (!stagingArea.stageFiles.contain(fileName)
-                    && !getCurrentCommit().fileList.contain(fileName)) {
-                if (c.fileList.contain(fileName)) {
+                    && !getCurrentCommit().getFileList().contain(fileName)) {
+                if (c.getFileList().contain(fileName)) {
                     System.out.println("There is an untracked file in the way; "
                             + "delete it, or add and commit it first.");
                     return;
@@ -224,12 +225,12 @@ public class Repository implements Serializable {
             }
         }
 
-        for (String fileName : getCurrentCommit().fileList.files.keySet()) {
+        for (String fileName : getCurrentCommit().getFileList().getFiles().keySet()) {
             File f = join(CWD, fileName);
             f.delete();
         }
 
-        for (Map.Entry<String, String> file : c.fileList.files.entrySet()) {
+        for (Map.Entry<String, String> file : c.getFileList().getFiles().entrySet()) {
             File cwdFile = join(CWD, file.getKey());
             File exceptedFile = join(Commit.OBJECT_FOLDER, file.getValue());
             try {
@@ -299,19 +300,19 @@ public class Repository implements Serializable {
     }
 
     private static boolean modified(String fileName, Commit oldCommit, Commit newCommit) {
-        if (oldCommit.fileList.contain(fileName)
-                && newCommit.fileList.contain(fileName)) {
-            return !oldCommit.fileList.getHashCode(fileName).equals(
-                    newCommit.fileList.getHashCode(fileName));
+        if (oldCommit.getFileList().contain(fileName)
+                && newCommit.getFileList().contain(fileName)) {
+            return !oldCommit.getFileList().getHashCode(fileName).equals(
+                    newCommit.getFileList().getHashCode(fileName));
         }
         return true;
     }
     private static boolean deleted(String fileName, Commit oldCommit, Commit newCommit) {
-        return oldCommit.fileList.contain(fileName)
-                && !newCommit.fileList.contain(fileName);
+        return oldCommit.getFileList().contain(fileName)
+                && !newCommit.getFileList().contain(fileName);
     }
 
-    private static boolean basicMergeCheck(String branchName) {
+    private static boolean mergeCheck(String branchName) {
         if (stagingArea.changed()) {
             System.out.println("You have uncommitted changes.");
             return false;
@@ -325,14 +326,6 @@ public class Repository implements Serializable {
             System.out.println("Cannot merge a branch with itself.");
             return false;
         }
-        return true;
-    }
-    public static void merge(String branchName) {
-        loadRepo();
-        if (!basicMergeCheck(branchName)) {
-            return;
-        }
-        Branch b = Branch.fromFile(branchName);
         Commit c = Commit.fromFile(b.commit), current = getCurrentCommit();
         Set<String> ancestorCommits = Commit.fromFile(head.commit).ancestorCommits();
         Commit split = c;
@@ -341,43 +334,60 @@ public class Repository implements Serializable {
         }
         if (split.getHashCode().equals(c.getHashCode())) {
             System.out.println("Given branch is an ancestor of the current branch.");
-            return;
+            return false;
         }
         if (split.getHashCode().equals(current.getHashCode())) {
             reset(c.getHashCode());
             System.out.println("Current branch fast-forwarded.");
-            return;
+            return false;
         }
         for (String fileName : plainFilenamesIn(CWD)) {
-            if (!split.fileList.contain(fileName) && c.fileList.contain(fileName)
-                    && !current.fileList.contain(fileName)) {
+            if (!split.getFileList().contain(fileName) && c.getFileList().contain(fileName)
+                    && !current.getFileList().contain(fileName)) {
                 System.out.println("There is an untracked file in the way; "
                         + "delete it, or add and commit it first.");
-                return;
+                return false;
             }
         }
-        for (String fileName : current.fileList.files.keySet()) {
+        for (String fileName : current.getFileList().getFiles().keySet()) {
             if (!modified(fileName, split, current) && deleted(fileName, split, c)
                     && plainFilenamesIn(CWD).contains(fileName)) {
                 System.out.println("There is an untracked file in the way; "
                         + "delete it, or add and commit it first.");
-                return;
+                return false;
             }
         }
+        return true;
+    }
+
+    public static void merge(String branchName) {
+        loadRepo();
+        if (!mergeCheck(branchName)) {
+            return;
+        }
+
+        Branch b = Branch.fromFile(branchName);
+        Commit c = Commit.fromFile(b.commit), current = getCurrentCommit();
+        Set<String> ancestorCommits = Commit.fromFile(head.commit).ancestorCommits();
+        Commit split = c;
+        while (!ancestorCommits.contains(split.getHashCode())) {
+            split = Commit.fromFile(split.getParentID());
+        }
+
         boolean hasConflict = false;
         Commit newCommit = new Commit("Merged " + branchName + " into " + head.name,
                 new Date(), head.commit, b.commit);
-        for (String fileName : current.fileList.files.keySet()) {
-            if (!modified(fileName, split, current) && c.fileList.contain(fileName)
+        for (String fileName : current.getFileList().getFiles().keySet()) {
+            if (!modified(fileName, split, current) && c.getFileList().contain(fileName)
                     && modified(fileName, split, c)) {
-                newCommit.fileList.addFile(fileName, c.fileList.getHashCode(fileName));
+                newCommit.getFileList().addFile(fileName, c.getFileList().getHashCode(fileName));
             } else if (modified(fileName, split, current)
-                    && c.fileList.contain(fileName) && modified(fileName, split, c)) {
+                    && c.getFileList().contain(fileName) && modified(fileName, split, c)) {
                 hasConflict = true;
                 File currentFile = join(Commit.OBJECT_FOLDER,
-                        current.fileList.getHashCode(fileName));
+                        current.getFileList().getHashCode(fileName));
                 File givenFile = join(Commit.OBJECT_FOLDER,
-                        c.fileList.getHashCode(fileName));
+                        c.getFileList().getHashCode(fileName));
                 String newContent = "<<<<<<< HEAD\n" + readContentsAsString(currentFile)
                         + "\n=======\n" + readContentsAsString(givenFile) + "\n>>>>>>>\n";
                 byte[] contentByte = newContent.getBytes();
@@ -389,15 +399,17 @@ public class Repository implements Serializable {
                     newFile = null;
                 }
                 writeContents(newFile, contentByte);
-                newCommit.fileList.addFile(fileName, newFileHash);
+                newCommit.getFileList().addFile(fileName, newFileHash);
             } else if (!(!modified(fileName, split, current)
                     && deleted(fileName, split, c))) {
-                newCommit.fileList.addFile(fileName, current.fileList.getHashCode(fileName));
+                newCommit.getFileList().addFile(fileName,
+                        current.getFileList().getHashCode(fileName));
             }
         }
-        for (String fileName : c.fileList.files.keySet()) {
-            if (!split.fileList.contain(fileName) && !current.fileList.contain(fileName)) {
-                newCommit.fileList.addFile(fileName, c.fileList.getHashCode(fileName));
+        for (String fileName : c.getFileList().getFiles().keySet()) {
+            if (!split.getFileList().contain(fileName)
+                    && !current.getFileList().contain(fileName)) {
+                newCommit.getFileList().addFile(fileName, c.getFileList().getHashCode(fileName));
             }
         }
         if (hasConflict) {
@@ -406,6 +418,7 @@ public class Repository implements Serializable {
         newCommit.saveCommit();
         rmBranch(branchName);
         reset(newCommit.getHashCode());
+        saveRepo();
     }
 
     private static void loadRepo() {

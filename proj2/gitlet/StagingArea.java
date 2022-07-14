@@ -28,7 +28,7 @@ public class StagingArea implements Serializable {
             removedFiles.remove(f.getName());
         }
 
-        if (!currentCommit.fileList.changed(f.getName(), hashCode)) {
+        if (!currentCommit.getFileList().changed(f.getName(), hashCode)) {
             tempFile.delete();
             return;
         }
@@ -60,7 +60,7 @@ public class StagingArea implements Serializable {
             changed = true;
         }
 
-        if (currentCommit.fileList.contain(name)) {
+        if (currentCommit.getFileList().contain(name)) {
             removedFiles.addFile(name, null);
             restrictedDelete(name);
             changed = true;
@@ -77,7 +77,7 @@ public class StagingArea implements Serializable {
 
     public void clearStagingArea() {
         Set<String> allStagedFiles = new HashSet<>();
-        for (String fileName : stageFiles.files.keySet()) {
+        for (String fileName : stageFiles.getFiles().keySet()) {
             allStagedFiles.add(fileName);
         }
         for (String fileName : allStagedFiles) {
