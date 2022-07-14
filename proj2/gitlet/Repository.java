@@ -107,7 +107,7 @@ public class Repository implements Serializable {
         for (String fileName : plainFilenamesIn(Commit.COMMIT_FOLDER)) {
             Commit c = Commit.fromFile(fileName);
             if (c.containMessage(msg)) {
-                c.print();
+                System.out.println(fileName);
             }
         }
     }
