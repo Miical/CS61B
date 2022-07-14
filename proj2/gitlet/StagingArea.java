@@ -3,6 +3,8 @@ package gitlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.HashSet;
+import java.util.Set;
 
 import static gitlet.Utils.*;
 
@@ -74,7 +76,11 @@ public class StagingArea implements Serializable {
     }
 
     public void clearStagingArea() {
+        Set<String> allStagedFiles = new HashSet<>();
         for (String fileName : stageFiles.files.keySet()) {
+            allStagedFiles.add(fileName);
+        }
+        for (String fileName : allStagedFiles) {
             unstage(fileName);
         }
         stageFiles.clear();
