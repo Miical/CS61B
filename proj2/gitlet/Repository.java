@@ -104,11 +104,16 @@ public class Repository implements Serializable {
     }
 
     public static void find(String msg) {
+        boolean found = false;
         for (String fileName : plainFilenamesIn(Commit.COMMIT_FOLDER)) {
             Commit c = Commit.fromFile(fileName);
             if (c.containMessage(msg)) {
+                found = true;
                 System.out.println(fileName);
             }
+        }
+        if (!found) {
+            System.out.println("Found no commit with that message.");
         }
     }
 
