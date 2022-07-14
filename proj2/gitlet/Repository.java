@@ -349,14 +349,6 @@ public class Repository implements Serializable {
                 return false;
             }
         }
-        for (String fileName : current.getFileList().getFiles().keySet()) {
-            if (!modified(fileName, split, current) && deleted(fileName, split, c)
-                    && plainFilenamesIn(CWD).contains(fileName)) {
-                System.out.println("There is an untracked file in the way; "
-                        + "delete it, or add and commit it first.");
-                return false;
-            }
-        }
         return true;
     }
 
@@ -418,7 +410,6 @@ public class Repository implements Serializable {
         newCommit.saveCommit();
         rmBranch(branchName);
         reset(newCommit.getHashCode());
-        saveRepo();
     }
 
     private static void loadRepo() {
