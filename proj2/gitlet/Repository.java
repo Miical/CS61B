@@ -367,7 +367,7 @@ public class Repository implements Serializable {
         }
 
         boolean hasConflict = false;
-        Commit newCommit = new Commit("Merged " + branchName + " into " + head.name,
+        Commit newCommit = new Commit("Merged " + branchName + " into " + head.name + ".",
                 new Date(), head.commit, b.commit);
         for (String fileName : current.getFileList().getFiles().keySet()) {
             if (!modified(fileName, split, current) && c.getFileList().contain(fileName)
