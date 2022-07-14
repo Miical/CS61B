@@ -408,7 +408,6 @@ public class Repository implements Serializable {
             System.out.println("Encountered a merge conflict.");
         }
         newCommit.saveCommit();
-        rmBranch(branchName);
         reset(newCommit.getHashCode());
     }
 
