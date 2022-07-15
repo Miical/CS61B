@@ -304,6 +304,9 @@ public class Repository implements Serializable {
                 && newCommit.getFileList().contain(fileName)) {
             return !oldCommit.getFileList().getHashCode(fileName).equals(
                     newCommit.getFileList().getHashCode(fileName));
+        } else if (!oldCommit.getFileList().contain(fileName)
+                && !newCommit.getFileList().contain(fileName)) {
+            return false;
         }
         return true;
     }
