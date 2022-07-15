@@ -381,7 +381,7 @@ public class Repository implements Serializable {
         vis.add(commitB.getHashCode());
         while (!queue.isEmpty()) {
             Commit c = Commit.fromFile(queue.poll());
-            if (ancestorCommits.contains(c)) {
+            if (ancestorCommits.contains(c.getHashCode())) {
                 return c;
             }
             if (c.getParentID() != null && !vis.contains(c.getParentID())) {
