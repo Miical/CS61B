@@ -6,6 +6,10 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
+import java.util.Queue;
+import java.util.HashSet;
+import java.util.LinkedList;
+
 
 import static gitlet.Utils.*;
 
@@ -325,11 +329,7 @@ public class Repository implements Serializable {
             return false;
         }
         Commit c = Commit.fromFile(b.commit), current = getCurrentCommit();
-        Set<String> ancestorCommits = Commit.fromFile(head.commit).ancestorCommits();
-        Commit split = c;
-        while (!ancestorCommits.contains(split.getHashCode())) {
-            split = Commit.fromFile(split.getParentID());
-        }
+        Commit split = findSplit(current, c);
         if (split.getHashCode().equals(c.getHashCode())) {
             System.out.println("Given branch is an ancestor of the current branch.");
             return false;
@@ -372,19 +372,38 @@ public class Repository implements Serializable {
         return newFileHash;
     }
 
+    private static Commit findSplit(Commit commitA, Commit commitB) {
+        Set<String> ancestorCommits = commitA.ancestorCommits();
+
+        Set<String> vis = new HashSet<>();
+        Queue<String> queue = new LinkedList<>();
+        queue.add(commitB.getHashCode());
+        vis.add(commitB.getHashCode());
+        while (!queue.isEmpty()) {
+            Commit c = Commit.fromFile(queue.poll());
+            if (ancestorCommits.contains(c)) {
+                return c;
+            }
+            if (c.getParentID() != null && !vis.contains(c.getParentID())) {
+                queue.add(c.getParentID());
+                vis.add(c.getParentID());
+            }
+            if (c.getMergedCommit() != null && !vis.contains(c.getMergedCommit())) {
+                queue.add(c.getMergedCommit());
+                vis.add(c.getMergedCommit());
+            }
+        }
+        return null;
+    }
+
     public static void merge(String branchName) {
         loadRepo();
         if (!mergeCheck(branchName)) {
             return;
         }
-
         Branch b = Branch.fromFile(branchName);
         Commit c = Commit.fromFile(b.commit), current = getCurrentCommit();
-        Set<String> ancestorCommits = Commit.fromFile(head.commit).ancestorCommits();
-        Commit split = c;
-        while (!ancestorCommits.contains(split.getHashCode())) {
-            split = Commit.fromFile(split.getParentID());
-        }
+        Commit split = findSplit(current, c);
 
         boolean hasConflict = false;
         Commit newCommit = new Commit("Merged " + branchName + " into " + head.name + ".",

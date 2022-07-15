@@ -5,9 +5,11 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
+import java.util.HashSet;
+import java.util.LinkedList;
 
 import static gitlet.Utils.*;
 
@@ -26,7 +28,7 @@ public class Commit implements Serializable {
     private String message;
     private String parentID;
     private Date date;
-    private String mergedBranch;
+    private String mergedCommit;
 
     private FileList fileList;
 
@@ -38,7 +40,7 @@ public class Commit implements Serializable {
         date = d;
         parentID = parent;
         fileList = new FileList();
-        mergedBranch = null;
+        mergedCommit = null;
     }
 
     Commit(String msg, Date d, String parent, String merge) {
@@ -46,11 +48,15 @@ public class Commit implements Serializable {
         date = d;
         parentID = parent;
         fileList = new FileList();
-        mergedBranch = merge;
+        mergedCommit = merge;
     }
 
     public FileList getFileList() {
         return fileList;
+    }
+
+    public String getMergedCommit() {
+        return mergedCommit;
     }
 
     public void updateFileList(Commit lastCommit, StagingArea stagingArea) {
@@ -84,9 +90,9 @@ public class Commit implements Serializable {
     public void print() {
         System.out.println("===");
         System.out.println("commit " + getHashCode());
-        if (mergedBranch != null) {
+        if (mergedCommit != null) {
             System.out.println("Merge: " + parentID.substring(0, 7)
-                    + " " + mergedBranch.substring(0, 7));
+                    + " " + mergedCommit.substring(0, 7));
         }
         SimpleDateFormat format = new
                 SimpleDateFormat("EEE MMM dd HH:mm:ss yyyy Z");
@@ -122,11 +128,21 @@ public class Commit implements Serializable {
 
     public Set<String> ancestorCommits() {
         Set<String> ancestors = new HashSet<>();
-        Commit now = this;
-        ancestors.add(getHashCode());
-        while (now.parentID != null) {
-            ancestors.add(now.parentID);
-            now = fromFile(now.parentID);
+        Set<String> vis = new HashSet<>();
+        Queue<String> queue = new LinkedList<>();
+        queue.add(getHashCode());
+        vis.add(getHashCode());
+        while (!queue.isEmpty()) {
+            Commit c = fromFile(queue.poll());
+            ancestors.add(c.getHashCode());
+            if (c.getParentID() != null && !vis.contains(c.getParentID())) {
+                queue.add(c.getParentID());
+                vis.add(c.getParentID());
+            }
+            if (c.getMergedCommit() != null && !vis.contains(c.getMergedCommit())) {
+                queue.add(c.getMergedCommit());
+                vis.add(c.getMergedCommit());
+            }
         }
         return ancestors;
     }
