@@ -307,11 +307,6 @@ public class Repository implements Serializable {
         }
         return true;
     }
-    private static boolean deleted(String fileName, Commit oldCommit, Commit newCommit) {
-        return oldCommit.getFileList().contain(fileName)
-                && !newCommit.getFileList().contain(fileName);
-    }
-
     private static boolean mergeCheck(String branchName) {
         if (stagingArea.changed()) {
             System.out.println("You have uncommitted changes.");
@@ -352,6 +347,28 @@ public class Repository implements Serializable {
         return true;
     }
 
+    public static String mergeConflictFile(File fileA, File fileB) {
+        String fileAContent = "", fileBContent = "";
+        if (fileA != null) {
+            fileAContent = readContentsAsString(fileA);
+        }
+        if (fileB != null) {
+            fileBContent = readContentsAsString(fileB);
+        }
+        String newContent = "<<<<<<< HEAD\n" + fileAContent
+                + "=======\n" + fileBContent + ">>>>>>>\n";
+        byte[] contentByte = newContent.getBytes();
+        String newFileHash = sha1(contentByte);
+        File newFile = join(Commit.OBJECT_FOLDER, newFileHash);
+        try {
+            newFile.createNewFile();
+        } catch (IOException excp) {
+            newFile = null;
+        }
+        writeContents(newFile, contentByte);
+        return newFileHash;
+    }
+
     public static void merge(String branchName) {
         loadRepo();
         if (!mergeCheck(branchName)) {
@@ -370,38 +387,41 @@ public class Repository implements Serializable {
         Commit newCommit = new Commit("Merged " + branchName + " into " + head.name + ".",
                 new Date(), head.commit, b.commit);
         for (String fileName : current.getFileList().getFiles().keySet()) {
-            if (!modified(fileName, split, current) && c.getFileList().contain(fileName)
-                    && modified(fileName, split, c)) {
-                newCommit.getFileList().addFile(fileName, c.getFileList().getHashCode(fileName));
-            } else if (modified(fileName, split, current)
-                    && c.getFileList().contain(fileName) && modified(fileName, split, c)) {
-                hasConflict = true;
-                File currentFile = join(Commit.OBJECT_FOLDER,
-                        current.getFileList().getHashCode(fileName));
-                File givenFile = join(Commit.OBJECT_FOLDER,
-                        c.getFileList().getHashCode(fileName));
-                String newContent = "<<<<<<< HEAD\n" + readContentsAsString(currentFile)
-                        + "\n=======\n" + readContentsAsString(givenFile) + "\n>>>>>>>\n";
-                byte[] contentByte = newContent.getBytes();
-                String newFileHash = sha1(contentByte);
-                File newFile = join(Commit.OBJECT_FOLDER, newFileHash);
-                try {
-                    newFile.createNewFile();
-                } catch (IOException excp) {
-                    newFile = null;
+            if (!modified(fileName, split, current)) {
+                if (c.getFileList().contain(fileName)) {
+                    newCommit.getFileList().addFile(fileName,
+                            c.getFileList().getHashCode(fileName));
                 }
-                writeContents(newFile, contentByte);
-                newCommit.getFileList().addFile(fileName, newFileHash);
-            } else if (!(!modified(fileName, split, current)
-                    && deleted(fileName, split, c))) {
-                newCommit.getFileList().addFile(fileName,
-                        current.getFileList().getHashCode(fileName));
+            } else {
+                if (!modified(fileName, split, current)) {
+                    newCommit.getFileList().addFile(fileName,
+                            current.getFileList().getHashCode(fileName));
+                } else {
+                    hasConflict = true;
+                    File currentFile = join(Commit.OBJECT_FOLDER,
+                            current.getFileList().getHashCode(fileName));
+                    File givenFile = null;
+                    if (c.getFileList().contain(fileName)) {
+                        givenFile = givenFile = join(Commit.OBJECT_FOLDER,
+                                c.getFileList().getHashCode(fileName));
+                    }
+                    String newFileHash = mergeConflictFile(currentFile, givenFile);
+                    newCommit.getFileList().addFile(fileName, newFileHash);
+                }
             }
         }
         for (String fileName : c.getFileList().getFiles().keySet()) {
-            if (!split.getFileList().contain(fileName)
-                    && !current.getFileList().contain(fileName)) {
-                newCommit.getFileList().addFile(fileName, c.getFileList().getHashCode(fileName));
+            if (!current.getFileList().contain(fileName)) {
+                if (!split.getFileList().contain(fileName)) {
+                    newCommit.getFileList().addFile(fileName, c.getFileList().getHashCode(fileName));
+                } else {
+                    if (modified(fileName, split, c)) {
+                        hasConflict = true;
+                        String newFileHash = mergeConflictFile(null,
+                            join(Commit.OBJECT_FOLDER, c.getFileList().getHashCode(fileName)));
+                        newCommit.getFileList().addFile(fileName, newFileHash);
+                    }
+                }
             }
         }
         if (hasConflict) {
