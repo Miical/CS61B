@@ -393,7 +393,7 @@ public class Repository implements Serializable {
                             c.getFileList().getHashCode(fileName));
                 }
             } else {
-                if (!modified(fileName, split, current)) {
+                if (!modified(fileName, split, c)) {
                     newCommit.getFileList().addFile(fileName,
                             current.getFileList().getHashCode(fileName));
                 } else {
@@ -402,7 +402,7 @@ public class Repository implements Serializable {
                             current.getFileList().getHashCode(fileName));
                     File givenFile = null;
                     if (c.getFileList().contain(fileName)) {
-                        givenFile = givenFile = join(Commit.OBJECT_FOLDER,
+                        givenFile = join(Commit.OBJECT_FOLDER,
                                 c.getFileList().getHashCode(fileName));
                     }
                     String newFileHash = mergeConflictFile(currentFile, givenFile);
@@ -413,7 +413,8 @@ public class Repository implements Serializable {
         for (String fileName : c.getFileList().getFiles().keySet()) {
             if (!current.getFileList().contain(fileName)) {
                 if (!split.getFileList().contain(fileName)) {
-                    newCommit.getFileList().addFile(fileName, c.getFileList().getHashCode(fileName));
+                    newCommit.getFileList().addFile(fileName,
+                            c.getFileList().getHashCode(fileName));
                 } else {
                     if (modified(fileName, split, c)) {
                         hasConflict = true;
