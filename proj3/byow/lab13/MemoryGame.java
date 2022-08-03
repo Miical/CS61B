@@ -53,32 +53,58 @@ public class MemoryGame {
         StdDraw.clear(Color.BLACK);
         StdDraw.enableDoubleBuffering();
 
-        //TODO: Initialize random number generator
+        rand = new Random(seed);
     }
 
     public String generateRandomString(int n) {
-        //TODO: Generate random string of letters of length n
-        return null;
+        String s = new String();
+        for (int i = 1; i <= n; i++) {
+            s += CHARACTERS[rand.nextInt(CHARACTERS.length)];
+        }
+        return s;
     }
 
     public void drawFrame(String s) {
-        //TODO: Take the string and display it in the center of the screen
-        //TODO: If game is not over, display relevant game information at the top of the screen
+        StdDraw.clear();
+        Font font = new Font("Arial", Font.BOLD, 30);
+        StdDraw.setFont(font);
+        StdDraw.text(width / 2, height / 2, s);
+        StdDraw.show();
     }
 
     public void flashSequence(String letters) {
-        //TODO: Display each character in letters, making sure to blank the screen between letters
+        for (int i = 0; i < letters.length(); i++) {
+            String s = letters.substring(i, i + 1);
+            drawFrame(s);
+            StdDraw.pause(1000);
+            drawFrame("");
+            StdDraw.pause(500);
+        }
     }
 
     public String solicitNCharsInput(int n) {
-        //TODO: Read n letters of player input
-        return null;
+        String s = "";
+        for (int i = 1; i <= n; i++) {
+            while (!StdDraw.hasNextKeyTyped()) {
+                continue;
+            }
+            s = s + StdDraw.nextKeyTyped();
+            drawFrame(s);
+        }
+        return s;
     }
 
     public void startGame() {
-        //TODO: Set any relevant variables before the game starts
-
-        //TODO: Establish Engine loop
+        for (int roundNumber = 1; ; roundNumber++) {
+            drawFrame("Round: " + roundNumber);
+            String goal = generateRandomString(roundNumber);
+            flashSequence(goal);
+            String typed = solicitNCharsInput(roundNumber);
+            if (!goal.equals(typed)) {
+                drawFrame("Game Over! You made it to round: " + roundNumber);
+                break;
+            }
+        }
     }
 
 }
