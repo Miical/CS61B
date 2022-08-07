@@ -6,7 +6,13 @@ import byow.InputDemo.StringInputDevice;
 import byow.TileEngine.TERenderer;
 import byow.TileEngine.TETile;
 import byow.TileEngine.Tileset;
+import edu.princeton.cs.introcs.StdDraw;
 
+import java.awt.Color;
+import java.awt.Font;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Vector;
 import java.util.Random;
 
@@ -20,9 +26,11 @@ public class Engine {
     /** Use random to generate world. */
     private Random random;
     /** Game windows width. */
-    public static final int WIDTH = 80;
+    public static final int WIDTH = 85;
     /** Game windows height. */
-    public static final int HEIGHT = 30;
+    public static final int HEIGHT = 45;
+    /** Heads Up Display Width. */
+    public static final int HUD_HEIGHT = 2;
 
 
     /**
@@ -83,8 +91,47 @@ public class Engine {
      * including inputs from the main menu.
      */
     public void interactWithKeyboard() {
-        ter.initialize(WIDTH, HEIGHT);
         InputSource inputSource = new KeyboardInputSource();
+        String optList = "";
+        TETile[][] world = null;
+        int[] avatarPos = null;
+
+        char opt = mainPage(inputSource);
+        if (opt == 'N') {
+            long seed = inputSeedPage(inputSource);
+            optList += "N" + seed + "S";
+            world = createNewWorld(seed);
+            avatarPos = generateAvatar(world);
+        } else if (opt == 'L') {
+            String s = loadFromFile();
+            optList += s;
+            world = interactWithInputString(s);
+            avatarPos = findAvatar(world);
+        } else if (opt == 'Q') {
+            return;
+        }
+
+        ter.initialize(WIDTH, HEIGHT + HUD_HEIGHT, 0, 0);
+        while (true) {
+            opt = getNextKeyListenMouse(world);
+            if (opt != ':') {
+                optList += opt;
+            }
+            if (opt == 'W') {
+                avatarMove(world, avatarPos, 0);
+            } else if (opt == 'S') {
+                avatarMove(world, avatarPos, 1);
+            } else if (opt == 'A') {
+                avatarMove(world, avatarPos, 2);
+            } else if (opt == 'D') {
+                avatarMove(world, avatarPos, 3);
+            } else if (opt == ':') {
+                if (opt == 'Q') {
+                    saveGameState(optList);
+                    break;
+                }
+            }
+        }
     }
 
     /**
@@ -112,12 +159,13 @@ public class Engine {
      */
     public TETile[][] interactWithInputString(String input) {
         InputSource inputSource = new StringInputDevice(input);
-        TETile[][] finalWorldFrame = null;
+        String optList = "";
+        TETile[][] world = null;
+        int[] avatarPos = null;
 
-        while (inputSource.possibleNextInput()) {
+        if (inputSource.possibleNextInput()) {
             char nextKey = inputSource.getNextKey();
             nextKey = Character.toUpperCase(nextKey);
-
             if (nextKey == 'N') {
                 String seed = "";
                 while (true) {
@@ -127,10 +175,267 @@ public class Engine {
                     }
                     seed += nextKey;
                 }
-                finalWorldFrame = createNewWorld(Long.parseLong(seed));
+                optList += "N" + seed + "S";
+                world = createNewWorld(Long.parseLong(seed));
+                avatarPos = generateAvatar(world);
+            } else if (nextKey == 'Q') {
+                return null;
+            } else if (nextKey == 'L') {
+                String s = loadFromFile();
+                optList += s;
+                world = interactWithInputString(s);
+                avatarPos = findAvatar(world);
             }
         }
-        return finalWorldFrame;
+
+        while (inputSource.possibleNextInput()) {
+            char opt = inputSource.getNextKey();
+            if (opt != ':') {
+                optList += opt;
+            }
+            if (opt == 'W') {
+                avatarMove(world, avatarPos, 0);
+            } else if (opt == 'S') {
+                avatarMove(world, avatarPos, 1);
+            } else if (opt == 'A') {
+                avatarMove(world, avatarPos, 2);
+            } else if (opt == 'D') {
+                avatarMove(world, avatarPos, 3);
+            } else if (opt == ':') {
+                if (opt == 'Q') {
+                    saveGameState(optList);
+                    return world;
+                }
+            }
+        }
+        return world;
+    }
+
+    /**
+     * Move avatar.
+     * If the avatar be moved, the pos will be changed.
+     * @param world the world
+     * @param pos the avatar's coordinate
+     * @param direct movement direct
+     *               (up 0, down 1, left 2, right 3)
+     */
+    private void avatarMove(TETile[][] world, int[] pos, int direct) {
+        int[] dx = new int[] {0, 0, -1, 1};
+        int[] dy = new int[] {1, -1, 0, 0};
+        int newX = pos[0] + dx[direct], newY = pos[1] + dy[direct];
+        if (legalFloorCoordinate(newX, newY)
+                && world[newX][newY] == Tileset.FLOOR) {
+            world[newX][newY] = Tileset.AVATAR;
+            world[pos[0]][pos[1]] = Tileset.FLOOR;
+            pos[0] = newX;
+            pos[1] = newY;
+        }
+    }
+
+    /**
+     * Generate a avatar in the world, and return its position.
+     * @param world the world
+     * @return the avatar's position
+     */
+    private int[] generateAvatar(TETile[][] world) {
+        int[] pos = randomPositionAtFloor(world);
+        world[pos[0]][pos[1]] = Tileset.AVATAR;
+        return pos;
+    }
+
+    /**
+     * Return a random pos on floor.
+     * @param world the world
+     * @return a random pos (x, y)
+     */
+    private int[] randomPositionAtFloor(TETile[][] world) {
+        int floorNumber = 0;
+        for (int i = 0; i < WIDTH; i++) {
+            for (int j = 0; j < HEIGHT; j++) {
+                if (world[i][j] == Tileset.FLOOR) {
+                    floorNumber++;
+                }
+            }
+        }
+        int selectedId = RandomUtils.uniform(random, floorNumber) + 1;
+        for (int i = 0; i < WIDTH; i++) {
+            for (int j = 0; j < HEIGHT; j++) {
+                if (world[i][j] == Tileset.FLOOR) {
+                    selectedId--;
+                    if (selectedId == 0) {
+                        return new int[] {i, j};
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Wait for next key and display present state.
+     * It will listen mouse moving.
+     * @param world the world
+     * @return next key
+     */
+    public char getNextKeyListenMouse(TETile[][] world) {
+        while (true) {
+            ter.renderFrame(world, hoveredTile(world).description());
+            StdDraw.pause(10);
+            if (StdDraw.hasNextKeyTyped()) {
+                char c = Character.toUpperCase(StdDraw.nextKeyTyped());
+                return c;
+            }
+        }
+    }
+
+    /**
+     * Return the tile under the mouse.
+     * @param world the world
+     * @return tile type under the mouse.
+     */
+    private TETile hoveredTile(TETile[][] world) {
+        int x = (int) StdDraw.mouseX();
+        int y = (int) StdDraw.mouseY();
+        if (legalCoordinate(x, y)) {
+            return world[x][y];
+        }
+        return Tileset.NOTHING;
+    }
+
+    /**
+     * Draw the page of seed input.
+     * @param seed present seed
+     */
+    public void drawSeedInputPage(String seed) {
+        final int titleSize = 40;
+        final int tipSize = 25;
+        final int seedSize = 30;
+        StdDraw.clear(Color.BLACK);
+        StdDraw.setPenColor(Color.WHITE);
+
+        Font font = new Font("Monaco", Font.BOLD, titleSize);
+        StdDraw.setFont(font);
+        String tip = "Please Input Seed";
+        StdDraw.text(WIDTH / 2, HEIGHT / 2 + 10, tip);
+
+        font = new Font("Monaco", Font.BOLD, tipSize);
+        StdDraw.setFont(font);
+        tip = "(Press S to Complete)";
+        StdDraw.text(WIDTH / 2, HEIGHT / 2 + 6, tip);
+
+        font = new Font("Monaco", Font.BOLD, seedSize);
+        StdDraw.setFont(font);
+        StdDraw.text(WIDTH / 2, HEIGHT / 2 - 2, seed);
+        StdDraw.show();
+    }
+
+    /**
+     * Support interactive page for player to input seed.
+     * Press 'S' to complete input.
+     * @param inputSource input source
+     * @return seed
+     */
+    private long inputSeedPage(InputSource inputSource) {
+        String seed = "";
+        drawSeedInputPage(seed);
+
+        while (inputSource.possibleNextInput()) {
+            char key = inputSource.getNextKey();
+            if (key == 'S' && seed.length() != 0) {
+                break;
+            }
+            if (Character.isDigit(key)) {
+                seed += key;
+                drawSeedInputPage(seed);
+            }
+        }
+
+        return Long.parseLong(seed);
+    }
+
+    /**
+     * Display the main page and wait player to input a legal character.
+     * @param inputSource  input Source
+     * @return option 'N', 'L', or 'Q'. if read no legal character, return ' '
+     */
+    private char mainPage(InputSource inputSource) {
+        final int titleSize = 45;
+        final int optionSize = 30;
+
+        StdDraw.setCanvasSize(WIDTH * 16, HEIGHT * 16);
+        StdDraw.setXscale(0, WIDTH);
+        StdDraw.setYscale(0, HEIGHT);
+        StdDraw.clear(Color.BLACK);
+        StdDraw.enableDoubleBuffering();
+
+        Font font = new Font("Monaco", Font.BOLD, titleSize);
+        StdDraw.setFont(font);
+        StdDraw.setPenColor(Color.WHITE);
+        String title = "CS61B: THE GAME";
+        StdDraw.text(WIDTH / 2, HEIGHT / 2 + 10, title);
+
+        font = new Font("Monaco", Font.BOLD, optionSize);
+        StdDraw.setFont(font);
+        String option = "New Game (N)";
+        StdDraw.text(WIDTH / 2, HEIGHT / 2 + 3, option);
+        option = "Load Game (L)";
+        StdDraw.text(WIDTH / 2, HEIGHT / 2 + 0, option);
+        option = "Quit (Q)";
+        StdDraw.text(WIDTH / 2, HEIGHT / 2 - 3, option);
+        StdDraw.show();
+
+        while (inputSource.possibleNextInput()) {
+            char opt = inputSource.getNextKey();
+            if (opt == 'N' || opt == 'L' || opt == 'Q') {
+                return opt;
+            }
+        }
+        return ' ';
+    }
+
+    /**
+     * Save a String to file "data.txt".
+     * @param optList string need to save
+     */
+    private void saveGameState(String optList) {
+        File file = new File("data.txt");
+        try {
+            file.createNewFile();
+        } catch (IOException excp) {
+            file = null;
+        }
+        byte[] content = optList.getBytes(StandardCharsets.UTF_8);
+        Utils.writeContents(file, content);
+    }
+
+    /**
+     * Load world from file.
+     * @return optList.
+     */
+    private String loadFromFile() {
+        File file = new File("data.txt");
+        if (file.exists()) {
+            String optList = Utils.readContentsAsString(file);
+            return optList;
+        }
+        return null;
+    }
+
+
+    /**
+     * Return the avatar's coordinate, if not exist, return null.
+     * @param world the world
+     * @return the avatar's coordinate
+     */
+    private int[] findAvatar(TETile[][] world) {
+        for (int i = 0; i < WIDTH; i++) {
+            for (int j = 0; j < HEIGHT; j++) {
+                if (world[i][j] == Tileset.AVATAR) {
+                    return new int[] {i, j};
+                }
+            }
+        }
+        return null;
     }
 
     /**
