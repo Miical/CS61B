@@ -158,6 +158,9 @@ public class Engine {
      * @return the 2D TETile[][] representing the state of the world
      */
     public TETile[][] interactWithInputString(String input) {
+        if (input == null) {
+            return null;
+        }
         InputSource inputSource = new StringInputDevice(input);
         String optList = "";
         TETile[][] world = null;
